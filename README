@@ -1,0 +1,13 @@
+A Simple Chat Server.
+
+Client can be use telnet.
+Client can create room
+Client can brodcast message in room.
+Client join or leave room.
+
+
+Techinque:
+Server use socket implemenets.
+Server support cluster.
+Server support serivce extend.
+
