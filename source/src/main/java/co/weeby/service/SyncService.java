@@ -103,11 +103,7 @@ public class SyncService extends Service {
 	
 	private void handleUserConnect(UserConnectionMessage evt) {
 		if (evt.getState() == UserConnectionMessage.DISCONNECT) {
-			Telnet tel = GlobalCache.getInstance().getTel(evt.getTerminal());
-			if (tel != null) {
-				sendSyncMessage(getMessage(SYNC_OFFLINE_MSG_FG, tel.getNickName(), ""));
-			}
-			
+			sendSyncMessage(getMessage(SYNC_OFFLINE_MSG_FG, evt.getNickName(), ""));
 		}
 	}
 	

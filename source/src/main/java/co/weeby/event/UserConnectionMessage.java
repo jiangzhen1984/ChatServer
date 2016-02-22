@@ -9,6 +9,8 @@ public class UserConnectionMessage extends MessageEvent {
 	
 	private Terminal terminal;
 	
+	private String nickName;
+	
 	private int state;
 
 	public UserConnectionMessage(long mvId, Terminal terminal, int state) {
@@ -28,6 +30,14 @@ public class UserConnectionMessage extends MessageEvent {
 
 	public int getState() {
 		return state;
+	}
+
+	public String getNickName() {
+		return nickName;
+	}
+
+	public void setNickName(String nickName) {
+		this.nickName = nickName;
 	}
 	
 	

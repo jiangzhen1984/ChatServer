@@ -60,6 +60,14 @@ public class OutputService extends Service {
 				handleUserLeaveRoom(tel);
 			}
 			
+			if (tel != null) {
+				evt.setNickName(tel.getNickName());
+				GlobalCache.getInstance().removeTel(tel.getTerminal());
+				if (tel.getNickName() != null) {
+					GlobalCache.getInstance().removeTel(tel.getNickName());
+				}
+			}
+			
 			writeMessage(evt.getTerminal(), "BYE \n");
 			//Close connect
 			evt.getTerminal().close();
