@@ -18,6 +18,8 @@ import co.weeby.terminal.Terminal;
 import co.weeby.terminal.TerminalType;
 
 public class MessageParserService extends Service {
+	
+	private static final String TAG ="MessageParserService";
 
 	@Override
 	public MessageEvent service(MessageEvent evt) {
@@ -100,12 +102,18 @@ public class MessageParserService extends Service {
 		return null;
 	}
 
-
+	static byte[] CTRL= new byte[] {-1, -12, -1, -3, 6};
 
 	private MessageEvent parseMessage(Terminal terminal, String str) {
 		str = str.replaceAll("\r\n", "").trim();
 		if (str.length() <= 0) {
 			return null;
+		}
+		
+		if (str.trim().equals(new String(CTRL))) {
+			Log.e(TAG, " Terminal quit by CTRL+C ");
+			return new UserConnectionMessage(terminal,
+					UserConnectionMessage.DISCONNECT);
 		}
 		MessageEvent mv = null;
 		char c = str.charAt(0);
