@@ -7,8 +7,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
-import co.weeby.log.Log;
-
 public class Terminal {
 	
 	protected TerminalType terminalType;
@@ -25,15 +23,17 @@ public class Terminal {
 	
 	protected SelectionKey selectionKey;
 	
-	private ByteBuffer buffer;
+	protected ByteBuffer buffer;
 	
 	protected int len = -1;
 	
 	
 	public Terminal(Socket socket) {
 		this.socket = socket;
-		this.localAddres = socket.getLocalSocketAddress();
-		this.remoteAddres = socket.getRemoteSocketAddress();
+		if (socket != null) {
+			this.localAddres = socket.getLocalSocketAddress();
+			this.remoteAddres = socket.getRemoteSocketAddress();
+		}
 		this.buffer = ByteBuffer.allocate(1024);
 	}
 	
@@ -118,6 +118,12 @@ public class Terminal {
 			}
 			try {
 				socket.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		} else if (channel != null) {
+			try {
+				channel.close();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

@@ -11,6 +11,8 @@ public class Telnet  {
 	
 	private boolean isLocal;
 	
+	private boolean firstInit;
+	
 
 	public Telnet(ClientTerminal terminal) {
 		this.terminal = terminal;
@@ -58,6 +60,16 @@ public class Telnet  {
 
 	public void setLocal(boolean isLocal) {
 		this.isLocal = isLocal;
+	}
+
+
+	public boolean isFirstInit() {
+		return firstInit;
+	}
+
+
+	public void setFirstInit(boolean firstInit) {
+		this.firstInit = firstInit;
 	}
 	
 	

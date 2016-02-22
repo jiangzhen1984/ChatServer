@@ -12,7 +12,7 @@ public interface Connector {
 	 * Use to start this connector
 	 * @param config
 	 */
-	public void start(Configuration config);
+	public boolean start(Configuration config);
 	
 	
 	/**

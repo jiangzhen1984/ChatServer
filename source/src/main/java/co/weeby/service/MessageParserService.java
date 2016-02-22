@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import co.weeby.event.FallbackMessage;
 import co.weeby.event.InternalUserRoomMessage;
+import co.weeby.event.InternalUserSendMessage;
 import co.weeby.event.InternalUserStateMessage;
 import co.weeby.event.MessageEvent;
 import co.weeby.event.MessageEventType;
@@ -14,6 +15,7 @@ import co.weeby.event.UserRoomMessage;
 import co.weeby.event.UserSendMessage;
 import co.weeby.log.Log;
 import co.weeby.terminal.Terminal;
+import co.weeby.terminal.TerminalType;
 
 public class MessageParserService extends Service {
 
@@ -127,45 +129,59 @@ public class MessageParserService extends Service {
 	
 	private MessageEvent parseUserMessage(Terminal terminal, String str) {
 		if (str.startsWith("/join")) {
-			if (str.length() <= 6) {
+			if (str.trim().length() <= 6) {
 				return new FallbackMessage(terminal, "No room names \n");
+			} else if (str.charAt(5) != ' ') {
+				return new FallbackMessage(terminal, "Incorrect format  shoule be /join roomname \n");
 			} else {
-				String roomName = str.substring(6);
+				String roomName = str.substring(6).trim();
 				return new UserRoomMessage(terminal, UserRoomMessage.Action.ENTER, roomName);
 			}
 			
 		} else if (str.startsWith("/leave")) {
 			return new UserRoomMessage(terminal, UserRoomMessage.Action.LEAVE, null);
-		} else if (str.startsWith("/quit")) {
+		} else if (str.equalsIgnoreCase("/quit")) {
 			return new UserConnectionMessage(terminal,
 					UserConnectionMessage.DISCONNECT);
-		} else if (str.startsWith("/rooms")) {
+		} else if (str.equalsIgnoreCase("/rooms")) {
 			return new UserRoomMessage(terminal, UserRoomMessage.Action.LIST, null);
 		}
-		return null;
+		return new FallbackMessage(terminal, "Unknown command : [/join  /leave /quit /rooms] \n");
 	}
 	
 	
 	private MessageEvent parseInternalMessage(Terminal terminal, String str) {
+		if (terminal.getTerminalType() == TerminalType.CLIENT) {
+			return new FallbackMessage(terminal, " Key workd reserved. Use by \\@ \n");
+		}
+		String[] arrs = str.split(" ");
+		if (arrs.length <= 1) {
+			return null;
+		}
+		String userName = arrs[1];
+		
 		if (str.startsWith("@/join")) {
-			String[] arrs = str.split(" ");
-			String userName = arrs[1];
+			if (arrs.length < 3) {
+				return null;
+			}
 			String roomName = arrs[2];
 			return new InternalUserRoomMessage(terminal, InternalUserRoomMessage.Action.ENTER, userName, roomName);
 		} else if (str.startsWith("@/leave")) {
-			String[] arrs = str.split(" ");
-			String userName = arrs[1];
+			if (arrs.length < 3) {
+				return null;
+			}
 			String roomName = arrs[2];
 			return new InternalUserRoomMessage(terminal, InternalUserRoomMessage.Action.LEAVE, userName, roomName);
-		} else if (str.startsWith("@/quit")) {
-			return new UserConnectionMessage(terminal,
-					UserConnectionMessage.DISCONNECT);
 		} else if (str.startsWith("@/online")) {
-			String nickName = str.substring(9);
-			return new InternalUserStateMessage(terminal, nickName, true);
-		}else if (str.startsWith("@/offline")) {
-			String nickName = str.substring(9);
-			return new InternalUserStateMessage(terminal, nickName, false);
+			return new InternalUserStateMessage(terminal, userName, true);
+		} else if (str.startsWith("@/offline")) {
+			return new InternalUserStateMessage(terminal, userName, false);
+		} else if (str.startsWith("@/send")) {
+			if (arrs.length < 3) {
+				return null;
+			}
+			String msg = str.substring(str.indexOf(arrs[1]) + arrs[1].length() + 1);
+			return new InternalUserSendMessage(terminal, userName, msg);
 		}
 		return null;
 	}

@@ -12,5 +12,7 @@ public class Configuration {
 	public int multicastPort;
 	
 	public boolean useMulicast;
+	
+	public String multicastIface;
 
 }

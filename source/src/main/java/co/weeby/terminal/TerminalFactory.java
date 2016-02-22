@@ -1,6 +1,7 @@
 package co.weeby.terminal;
 
 import java.net.Socket;
+import java.nio.channels.DatagramChannel;
 import java.nio.channels.SocketChannel;
 
 public class TerminalFactory {
@@ -26,6 +27,13 @@ public class TerminalFactory {
 			throw new NullPointerException(" socket is null ");
 		}
 		return new ServerTerminal(socket);
+	}
+	
+	public static ServerTerminal constructServerNodeTerminal(DatagramChannel channel) {
+		if (channel == null) {
+			throw new NullPointerException(" channel is null ");
+		}
+		return new ServerTerminal(channel);
 	}
 
 }

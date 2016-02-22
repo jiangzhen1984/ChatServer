@@ -37,7 +37,7 @@
         <target>1.8</target>
         <archive>
             <manifest>
-                <mainClass>co.weeby.main</mainClass>
+                <mainClass>co.weeby.Main</mainClass>
                 <addClasspath>true</addClasspath>
             <classpathPrefix>lib/</classpathPrefix>
             </manifest>

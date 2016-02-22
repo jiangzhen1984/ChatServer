@@ -1,20 +1,20 @@
 package co.weeby.connector;
 
 import java.io.IOException;
-import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
+import java.net.StandardProtocolFamily;
+import java.net.StandardSocketOptions;
 import java.net.UnknownHostException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import co.weeby.event.ServerDataAvailableMessage;
-import co.weeby.event.UserConnectionMessage;
 import co.weeby.event.UserDataAvailableMessage;
 import co.weeby.log.Log;
 import co.weeby.service.ServiceLooper;
@@ -28,14 +28,15 @@ import co.weeby.terminal.TerminalType;
  * @author jiangzhen
  *
  */
-public class SelectorConnector implements Connector {
+public class MulticastSelectorConnector implements Connector {
 	
-	private static final String TAG ="CONNECTOR";
+	private static final String TAG ="MulticastSelectorConnector";
 	
 	private Selector   selector;
-	private ServerSocketChannel serverChannel;
 	private boolean init;
 	private State sockStat;
+	
+	private DatagramChannel multicastChannel;
 	
 	private ListenWorker workder;
 	
@@ -46,11 +47,16 @@ public class SelectorConnector implements Connector {
 	private ServiceLooper serviceLooper;
 	
 
-	public SelectorConnector(ServiceLooper serviceLooper) {
+	public MulticastSelectorConnector(ServiceLooper serviceLooper) {
 		init = false;
 		sockStat = State.UNINIT;
 		terminals = new ConcurrentHashMap<SelectionKey, Terminal>();
 		this.serviceLooper = serviceLooper;
+		try {
+			multicastChannel = DatagramChannel.open(StandardProtocolFamily.INET);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public boolean start(Configuration config) {
@@ -58,13 +64,22 @@ public class SelectorConnector implements Connector {
 			Log.w(TAG, "connector is started ");
 			return false;
 		}
+		
+		if (multicastChannel == null) {
+			Log.w(TAG, "Can not get channel start failed ");
+			return false;
+		}
 		synchronized(lock) {
 			Log.i(TAG, "starting listener:");
-			Log.i(TAG, " address ==> :" + config.address);
-			Log.i(TAG, "  port   ==> :" + config.port);
+			if (config.useMulicast) {
+				Log.i(TAG, " multicast address ==> " + config.multicastAddress);
+				Log.i(TAG, " multicast port ==> " + config.multicastPort);
+			} else {
+				throw new RuntimeException("Does not support mulitcast ");
+			}
+			
 			try {
 				selector = Selector.open();
-				serverChannel =ServerSocketChannel.open();
 				sockStat = State.INITED;
 			} catch (IOException e) {
 				Log.e(TAG, " connector start failed ", e);
@@ -106,12 +121,13 @@ public class SelectorConnector implements Connector {
 			} catch (InterruptedException e2) {
 				Log.e(TAG, " waiting for worker thread quit error ");
 			}
-			
+
 			try {
-				serverChannel.close();
-			} catch (IOException e1) {
-				Log.e(TAG, " serverChannel close failed ", e1);
+				multicastChannel.close();
+			} catch (IOException e) {
+				Log.e(TAG, " multicastChannel close failed ", e);
 			}
+			
 			
 			
 			if (selector != null) {
@@ -125,6 +141,11 @@ public class SelectorConnector implements Connector {
 			sockStat = State.CLOSED;
 		}
 
+	}
+	
+	
+	public DatagramChannel getMulicastChannel() {
+		return this.multicastChannel;
 	}
 	
 	
@@ -149,20 +170,29 @@ public class SelectorConnector implements Connector {
 		@Override
 		public void run() {
 			synchronized (lock) {
-				sockStat = SelectorConnector.State.PREPARING;
+				sockStat = MulticastSelectorConnector.State.PREPARING;
 				
 				try {
-					serverChannel.configureBlocking(false);
-					serverChannel.bind(new InetSocketAddress(Inet4Address.getByName(config.address), config.port));
-					serverChannel.register(selector, SelectionKey.OP_ACCEPT);
+					
+					InetAddress group = InetAddress.getByName(config.multicastAddress);
+					NetworkInterface ni = NetworkInterface.getByName(config.multicastIface);
+					multicastChannel.bind(new InetSocketAddress(config.multicastPort));
+					multicastChannel.configureBlocking(false);
+					multicastChannel.setOption(StandardSocketOptions.IP_MULTICAST_IF, ni);
+					multicastChannel.setOption(StandardSocketOptions.IP_MULTICAST_LOOP, false);
+					multicastChannel.join(group, ni);
+					
+					multicastChannel.register(selector, SelectionKey.OP_READ);
+					
+					 
 				} catch (UnknownHostException e) {
 					Log.e(TAG, " server socket bind  failed ", e);
-					sockStat = SelectorConnector.State.PREPARED_FAILED;
+					sockStat = MulticastSelectorConnector.State.PREPARED_FAILED;
 					lock.notify();
 					return;
 				} catch (Exception e) {
 					Log.e(TAG, " server socket bind  failed ", e);
-					sockStat = SelectorConnector.State.PREPARED_FAILED;
+					sockStat = MulticastSelectorConnector.State.PREPARED_FAILED;
 					lock.notify();
 					return;
 				}
@@ -170,11 +200,10 @@ public class SelectorConnector implements Connector {
 			
 			
 			synchronized (lock) {
-				sockStat = SelectorConnector.State.LISTENING;
+				sockStat = MulticastSelectorConnector.State.LISTENING;
 				lock.notify();
 			}
-			
-			
+
 			//FIXME add exception handler avoid dead loop
 			while(!stop) {
 				try {
@@ -185,14 +214,13 @@ public class SelectorConnector implements Connector {
 						SelectionKey sk = keys.next();
 						Log.i(TAG, "key:" + sk+"  acctp:"+ sk.isAcceptable()+"   read:"+ sk.isReadable()+"  conn:"+ sk.isConnectable()+"  valid:"+ sk.isValid());
 						if (sk.isAcceptable()) {
-							handleAccept(serverChannel);
+							Log.e(TAG, "Ilegal state for multicast acceptable");
 							keys.remove();
 						} else if (sk.isReadable()) {
 							handleDataAvailable(sk);
 							keys.remove();
 						} else if (sk.isConnectable()) {
-							//TODO send client quit
-							Log.d(TAG, "client disconnect: ");
+							Log.d(TAG, "Ilegal state for multicast  connectable" );
 							keys.remove();
 						}
 						
@@ -211,26 +239,13 @@ public class SelectorConnector implements Connector {
 			stop = true;
 		}
 		
-		
-		
-		private void handleAccept(ServerSocketChannel serverChannel) throws IOException {
-			SocketChannel client = serverChannel.accept();
-			client.configureBlocking(false);
-			SelectionKey clientKey = client.register(selector, SelectionKey.OP_READ);
-			Terminal clientTerminal = TerminalFactory.constructClientTerminal(client);
-			terminals.put(clientKey, clientTerminal);
-			clientTerminal.setSelectionKey(clientKey);
-			if (serviceLooper != null) {
-				//send user connect Message
-				serviceLooper.handleMessage(new UserConnectionMessage(clientTerminal, UserConnectionMessage.CONNECT));
-			}
-		}
-		
+
 		private void handleDataAvailable(SelectionKey selectionKey) {
 			Terminal terminal = terminals.get(selectionKey);
 			if (terminal == null ) {
-				Log.e(TAG, "terminal is null for " + selectionKey);
-				return;
+				//server node send data. client channel never come to here
+				terminal = TerminalFactory.constructServerNodeTerminal((DatagramChannel)selectionKey.channel());
+				terminals.put(selectionKey, terminal);
 			}
 			
 			if (terminal.isDataAvil()) {

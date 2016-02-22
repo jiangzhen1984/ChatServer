@@ -8,7 +8,6 @@ import co.weeby.chat.Room;
 import co.weeby.chat.Telnet;
 import co.weeby.event.FallbackMessage;
 import co.weeby.event.InternalUserRoomMessage;
-import co.weeby.event.InternalUserStateMessage;
 import co.weeby.event.MessageEvent;
 import co.weeby.event.MessageEventType;
 import co.weeby.event.UserConnectionMessage;
@@ -39,15 +38,12 @@ public class OutputService extends Service {
 		case CLIENT_CONNECT_EVT:
 			handleUserConnect((UserConnectionMessage) evt);
 			break;
+		case INTERNAL_USER_ROOM_EVT:
+			handleInternalUserRoomMessage((InternalUserRoomMessage) evt);
+			break;
 		case FALLBACK_EVT:
 			handleFallback((FallbackMessage) evt);
 			break;
-		case INTERNAL_USER_STATE_EVT:
-			handleInternalUserStateMessage((InternalUserStateMessage) evt);
-			break;
-		case INTERNAL_USER_ROOM_EVT:
-			handleInternalUserRoomMessage((InternalUserRoomMessage) evt);
-			
 		default:
 			break;
 		}
@@ -90,6 +86,8 @@ public class OutputService extends Service {
 			tel = new Telnet((ClientTerminal)evt.getTerminal());
 			tel.setNickName(evt.getMsg());
 			tel.setLocal(true);
+			//Mark this is first time 
+			tel.setFirstInit(true);
 			GlobalCache.getInstance().saveTel(tel.getNickName(), tel);
 			writeMessage(evt.getTerminal(), "Welcome " + tel.getNickName()+" \n");
 			return;
@@ -144,34 +142,8 @@ public class OutputService extends Service {
 	}
 	
 	
-	
-	private void handleInternalUserStateMessage(InternalUserStateMessage evt) {
-		if (evt.isOnline()) {
-			Telnet tel = new Telnet((ClientTerminal)evt.getTerminal());
-			tel.setNickName(evt.getUserName());
-			tel.setLocal(false);
-			GlobalCache.getInstance().saveTel(evt.getUserName(), tel);
-		} else {
-			GlobalCache.getInstance().removeTel(evt.getUserName());
-		}
-	}
-	
-	
-	private void handleInternalUserRoomMessage(InternalUserRoomMessage evt) {
-		Telnet tel =  GlobalCache.getInstance().getTel(evt.getUserName());
-		if (tel == null) {
-			Log.e(TAG, " tel is null action:" + evt.getAc());
-			return;
-		}
-		
-		if (evt.getAc() == InternalUserRoomMessage.Action.ENTER) {
-			handleUserEnterRoom(tel, evt.getRoom());
-		} else if (evt.getAc() == InternalUserRoomMessage.Action.LEAVE){
-			handleUserLeaveRoom(tel);
-		}
-	}
-	
-	
+
+
 	private void handleUserEnterRoom(Telnet tel, String newRoomName) {
 		Room room = tel.getRoom();
 		if (room != null) {
@@ -207,6 +179,22 @@ public class OutputService extends Service {
 			writeMessage(tel, tel.getRoom(), "* user has left chat: " + tel.getNickName() +"\n");
 			tel.getRoom().removeUser(tel);
 			tel.setRoom(null);
+		}
+	}
+	
+	
+	
+	private void handleInternalUserRoomMessage(InternalUserRoomMessage evt) {
+		Telnet tel =  GlobalCache.getInstance().getTel(evt.getUserName());
+		if (tel == null) {
+			Log.e(TAG, " tel is null action:" + evt.getAc());
+			return;
+		}
+		
+		if (evt.getAc() == InternalUserRoomMessage.Action.ENTER) {
+			handleUserEnterRoom(tel, evt.getRoom());
+		} else if (evt.getAc() == InternalUserRoomMessage.Action.LEAVE){
+			handleUserLeaveRoom(tel);
 		}
 	}
 	
