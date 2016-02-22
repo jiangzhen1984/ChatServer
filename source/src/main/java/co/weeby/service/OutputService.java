@@ -154,6 +154,10 @@ public class OutputService extends Service {
 
 	private void handleUserEnterRoom(Telnet tel, String newRoomName) {
 		Room room = tel.getRoom();
+		if (room != null && newRoomName.equals(room.getName())) {
+			writeMessage(tel.getTerminal(), "You have in this room \n ");
+			return;
+		}
 		if (room != null) {
 			handleUserLeaveRoom(tel);
 		}
@@ -255,7 +259,7 @@ public class OutputService extends Service {
 		for (int i = 0; i < tls.size(); i++) {
 			Telnet t = tls.get(i);
 			sb.append(" * ").append(t.getNickName());
-			if (t == tls) {
+			if (t == tel) {
 				sb.append(" (this is you) ");
 			}
 			sb.append("\n");
