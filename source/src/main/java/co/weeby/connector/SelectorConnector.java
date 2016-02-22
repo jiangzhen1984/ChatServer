@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.nio.channels.DatagramChannel;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -183,21 +183,25 @@ public class SelectorConnector implements Connector {
 					Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
 					while(keys.hasNext()) {
 						SelectionKey sk = keys.next();
-						Log.i(TAG, "key:" + sk+"  acctp:"+ sk.isAcceptable()+"   read:"+ sk.isReadable()+"  conn:"+ sk.isConnectable()+"  valid:"+ sk.isValid());
-						if (sk.isAcceptable()) {
-							handleAccept(serverChannel);
-							keys.remove();
-						} else if (sk.isReadable()) {
-							handleDataAvailable(sk);
-							keys.remove();
-						} else if (sk.isConnectable()) {
-							//TODO send client quit
-							Log.d(TAG, "client disconnect: ");
-							keys.remove();
+						try {
+							Log.i(TAG, "key:" + sk+"  acctp:"+ sk.isAcceptable()+"   read:"+ sk.isReadable()+"  conn:"+ sk.isConnectable()+"  valid:"+ sk.isValid());
+							if (sk.isAcceptable()) {
+								handleAccept(serverChannel);
+								keys.remove();
+							} else if (sk.isReadable()) {
+								handleDataAvailable(sk);
+								keys.remove();
+							} else if (sk.isConnectable()) {
+								//TODO send client quit
+								Log.d(TAG, "client disconnect: ");
+								keys.remove();
+							}
+						} catch (CancelledKeyException e1) {
+							Log.d(TAG, "key is cancelled: " + sk , e1);
 						}
 						
 					}
-				} catch (IOException e) {
+				} catch (Exception e) {
 					e.printStackTrace();
 				}
 			}

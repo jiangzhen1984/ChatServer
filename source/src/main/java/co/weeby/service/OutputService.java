@@ -119,7 +119,7 @@ public class OutputService extends Service {
 				}
 				
 				if (t !=  tel) {
-					sb.append(t.getNickName()).append(": ");
+					sb.append(tel.getNickName()).append(": ");
 					sb.append(evt.getMsg()).append("\n");
 					data = sb.toString().getBytes();
 					t.getTerminal().write(data, 0, data.length);

@@ -7,6 +7,7 @@ import java.net.NetworkInterface;
 import java.net.StandardProtocolFamily;
 import java.net.StandardSocketOptions;
 import java.net.UnknownHostException;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -212,16 +213,20 @@ public class MulticastSelectorConnector implements Connector {
 					Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
 					while(keys.hasNext()) {
 						SelectionKey sk = keys.next();
-						Log.i(TAG, "key:" + sk+"  acctp:"+ sk.isAcceptable()+"   read:"+ sk.isReadable()+"  conn:"+ sk.isConnectable()+"  valid:"+ sk.isValid());
-						if (sk.isAcceptable()) {
-							Log.e(TAG, "Ilegal state for multicast acceptable");
-							keys.remove();
-						} else if (sk.isReadable()) {
-							handleDataAvailable(sk);
-							keys.remove();
-						} else if (sk.isConnectable()) {
-							Log.d(TAG, "Ilegal state for multicast  connectable" );
-							keys.remove();
+						try {
+							Log.i(TAG, "key:" + sk+"  acctp:"+ sk.isAcceptable()+"   read:"+ sk.isReadable()+"  conn:"+ sk.isConnectable()+"  valid:"+ sk.isValid());
+							if (sk.isAcceptable()) {
+								Log.e(TAG, "Ilegal state for multicast acceptable");
+								keys.remove();
+							} else if (sk.isReadable()) {
+								handleDataAvailable(sk);
+								keys.remove();
+							} else if (sk.isConnectable()) {
+								Log.d(TAG, "Ilegal state for multicast  connectable" );
+								keys.remove();
+							}
+						} catch (CancelledKeyException e1) {
+							Log.d(TAG, "key is cancelled: " + sk , e1);
 						}
 						
 					}
