@@ -82,7 +82,7 @@ public class GlobalCache {
 	
 	public void removeTel(String nickName) {
 		Telnet tel = clients.remove(nickName);
-		if (tel != null) {
+		if (tel != null && tel.isLocal()) {
 			clientTeminals.remove(tel.getTerminal());
 		}
 	}

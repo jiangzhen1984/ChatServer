@@ -93,6 +93,11 @@ public class SyncService extends Service {
 			tel.setFirstInit(false);
 			return;
 		}
+		
+		if (tel.getRoom() == null) {
+			Log.i(TAG, "User not in room, no need to sync");
+			return;
+		}
 		sendSyncMessage(getMessage(SYNC_SEND_MSG_FG, tel.getNickName(), evt.getMsg()));
 		
 	}

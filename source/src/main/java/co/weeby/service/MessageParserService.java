@@ -159,6 +159,7 @@ public class MessageParserService extends Service {
 	
 	
 	private MessageEvent parseInternalMessage(Terminal terminal, String str) {
+		Log.i(TAG, terminal +" sync msg ==> " + str);
 		if (terminal.getTerminalType() == TerminalType.CLIENT) {
 			return new FallbackMessage(terminal, " Key workd reserved. Use by \\@ \n");
 		}

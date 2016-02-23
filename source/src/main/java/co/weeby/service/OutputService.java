@@ -186,7 +186,9 @@ public class OutputService extends Service {
 		if (tel.getRoom() == null) {
 			writeMessage(tel.getTerminal(), "You doesn't enter room yet ! \n");
 		} else {
-			writeMessage(tel.getTerminal(), "* user has left chat: " + tel.getNickName()+" (this is you) \n");
+			if (tel.isLocal()) {
+				writeMessage(tel.getTerminal(), "* user has left chat: " + tel.getNickName()+" (this is you) \n");
+			}
 			
 			writeMessage(tel, tel.getRoom(), "* user has left chat: " + tel.getNickName() +"\n");
 			tel.getRoom().removeUser(tel);

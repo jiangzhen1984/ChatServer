@@ -13,6 +13,7 @@ public class Telnet  {
 	
 	private boolean firstInit;
 	
+	private Room lastRoom;
 
 	public Telnet(ClientTerminal terminal) {
 		this.terminal = terminal;
@@ -44,10 +45,16 @@ public class Telnet  {
 
 
 	public void setRoom(Room room) {
+		this.lastRoom = this.room;
 		this.room = room;
 	}
 
 	
+	public Room getLastRoom() {
+		return lastRoom;
+	}
+
+
 	public boolean isAvl() {
 		return nickName != null && room != null;
 	}
